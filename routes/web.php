@@ -20,8 +20,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/profil', [AuthController::class, 'edit'])->name('credentials.edit');
     Route::post('/profil', [AuthController::class, 'update'])->name('credentials.update');
 
-    Route::get('/rekap-penarikan', [TagihanController::class, 'rekap'])->name('rekap-penarikan');
-
     Route::prefix('tagihan')->name('tagihan.')->group(function () {
         Route::get('/', [TagihanController::class, 'index'])->name('index');
         Route::get('/rekap', [TagihanController::class, 'rekap'])->name('rekap');
