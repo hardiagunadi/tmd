@@ -24,6 +24,11 @@
         @endauth
         <div class="d-flex align-items-center gap-2">
             @auth
+                <a href="{{ route('rekap-keuangan.index') }}" class="btn btn-sm btn-outline-light">Rekap Keuangan</a>
+                <a href="{{ route('pendapatan-lain.index') }}" class="btn btn-sm btn-outline-light">Pendapatan Lain</a>
+                <a href="{{ route('penarikan.index') }}" class="btn btn-sm btn-outline-light">Rekap Penarikan</a>
+            @endauth
+            @auth
                 <a href="{{ route('credentials.edit') }}" class="btn btn-sm btn-outline-light">Ganti Kredensial</a>
                 <form method="POST" action="{{ route('logout') }}" class="mb-0">
                     @csrf
@@ -41,5 +46,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@stack('scripts')
 </body>
 </html>
