@@ -18,6 +18,7 @@
         </a>
         <div class="d-flex align-items-center gap-2">
             @auth
+                <a href="{{ route('rekap-keuangan.index') }}" class="btn btn-sm btn-outline-light">Rekap Keuangan</a>
                 <a href="{{ route('pendapatan-lain.index') }}" class="btn btn-sm btn-outline-light">Pendapatan Lain</a>
                 <a href="{{ route('penarikan.index') }}" class="btn btn-sm btn-outline-light">Rekap Penarikan</a>
             @endauth
