@@ -140,7 +140,7 @@ public function print(Tagihan $tagihan)
 public function printBatch(Request $request)
 {
     $request->validate([
-        'jumlah'        => 'required|in:10,15',
+        'jumlah'        => 'required|in:10,15,20',
         'bulan'         => 'nullable|integer|min:1|max:12',
         'tahun'         => 'nullable|integer',
         'hanya_belum'   => 'nullable|boolean', // optional: cetak hanya yang belum cetak
