@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Imports\TagihanRawImport;
 use App\Models\Tagihan;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -63,12 +64,12 @@ class TagihanController extends Controller
         $totalPelanggan = $tagihans->count();
 
         return view('tagihan.rekap', [
-            'bulan'           => $bulan,
-            'tahun'           => $tahun,
-            'search'          => $search,
-            'tagihans'        => $tagihans,
-            'totalBayar'      => $totalBayar,
-            'totalPelanggan'  => $totalPelanggan,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'search' => $search,
+            'tagihans' => $tagihans,
+            'totalBayar' => $totalBayar,
+            'totalPelanggan' => $totalPelanggan,
         ]);
     }
 
@@ -84,7 +85,7 @@ class TagihanController extends Controller
     public function importPreview(Request $request): View
     {
         $request->validate([
-            'file'          => 'required|file|mimes:xlsx,xls',
+            'file' => 'required|file|mimes:xlsx,xls',
             'bulan_tagihan' => 'required|integer|min:1|max:12',
             'tahun_tagihan' => 'required|integer|min:2000',
         ]);
@@ -92,7 +93,7 @@ class TagihanController extends Controller
         $bulan = (int) $request->bulan_tagihan;
         $tahun = (int) $request->tahun_tagihan;
 
-        $import = new TagihanRawImport();
+        $import = new TagihanRawImport;
         Excel::import($import, $request->file('file'));
 
         $rows = $import->rows ?? collect();
@@ -113,14 +114,14 @@ class TagihanController extends Controller
         // meta bulan & tahun tetap dari session
         $meta = Session::get('tagihan_import_meta');
 
-        if (!$meta) {
+        if (! $meta) {
             return redirect()->route('tagihan.import.form')
                 ->with('error', 'Session import kosong, silakan upload ulang.');
         }
 
         // data hasil edit dari form preview
         $rowsInput = $request->input('rows', []);
-        $selected  = $request->input('selected_rows', []);
+        $selected = $request->input('selected_rows', []);
 
         if (empty($rowsInput) || empty($selected)) {
             return back()->with('error', 'Tidak ada data yang dipilih untuk di-import.');
@@ -130,7 +131,7 @@ class TagihanController extends Controller
         $tahun = (int) $meta['tahun_tagihan'];
 
         foreach ($selected as $index) {
-            if (!isset($rowsInput[$index])) {
+            if (! isset($rowsInput[$index])) {
                 continue;
             }
 
@@ -141,7 +142,7 @@ class TagihanController extends Controller
             }
 
             $deskripsiPaket = trim(
-                ($row['paket_langganan'] ?? '') . ' ' .
+                ($row['paket_langganan'] ?? '').' '.
                 ($row['tipe_service'] ?? '')
             );
 
@@ -151,13 +152,13 @@ class TagihanController extends Controller
             Tagihan::updateOrCreate(
                 ['no_invoice' => $row['invoice']],
                 [
-                    'nama_instansi'   => $row['nama'] ?? '',
+                    'nama_instansi' => $row['nama'] ?? '',
                     'alamat_instansi' => $row['alamat'] ?? '',
-                    'no_pelanggan'    => (string)($row['id_pelanggan'] ?? ''),
-                    'bulan_tagihan'   => $bulan,
-                    'tahun_tagihan'   => $tahun,
+                    'no_pelanggan' => (string) ($row['id_pelanggan'] ?? ''),
+                    'bulan_tagihan' => $bulan,
+                    'tahun_tagihan' => $tahun,
                     'biaya_langganan' => $total,
-                    'biaya_admin'     => 0,
+                    'biaya_admin' => 0,
                     'deskripsi_paket' => $deskripsiPaket ?: 'High Speed Internet Package Service',
                 ]
             );
@@ -184,19 +185,19 @@ class TagihanController extends Controller
     public function printBatch(Request $request): View|RedirectResponse
     {
         $validated = $request->validate([
-            'jumlah'        => 'nullable|in:10,15,20',
-            'selected'      => 'nullable|array',
-            'selected.*'    => 'integer|exists:tagihans,id',
-            'bulan'         => 'nullable|integer|min:1|max:12',
-            'tahun'         => 'nullable|integer',
-            'hanya_belum'   => 'nullable|boolean', // optional: cetak hanya yang belum cetak
+            'jumlah' => 'nullable|in:10,15,20',
+            'selected' => 'nullable|array',
+            'selected.*' => 'integer|exists:tagihans,id',
+            'bulan' => 'nullable|integer|min:1|max:12',
+            'tahun' => 'nullable|integer',
+            'hanya_belum' => 'nullable|boolean', // optional: cetak hanya yang belum cetak
         ]);
 
         $bulan = $validated['bulan'] ?? null;
         $tahun = $validated['tahun'] ?? now()->year;
         $selectedIds = $validated['selected'] ?? [];
 
-        if (!empty($selectedIds)) {
+        if (! empty($selectedIds)) {
             $tagihans = Tagihan::query()
                 ->whereIn('id', $selectedIds)
                 ->orderBy('nama_instansi')
@@ -236,10 +237,6 @@ class TagihanController extends Controller
                 $t->save();
             }
         }
-
-        // view khusus untuk cetak banyak nota sekaligus
-        return view('tagihan.print_batch', compact('tagihans'));
-    }
 
         // view khusus untuk cetak banyak nota sekaligus
         return view('tagihan.print_batch', compact('tagihans'));
