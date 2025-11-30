@@ -19,8 +19,9 @@
         @auth
             <div class="navbar-nav me-auto">
                 <a class="nav-link" href="{{ route('tagihan.index') }}">Daftar Tagihan</a>
-                <a class="nav-link" href="{{ route('tagihan.rekap') }}">Rekap Penarikan</a>
                 <a class="nav-link" href="{{ route('tagihan.penarikan.index') }}">Entri Penarikan</a>
+                <a class="nav-link" href="{{ route('lainnya.index') }}">Pendapatan/Pengeluaran Lainnya</a>
+                <a class="nav-link" href="{{ route('rekap.index') }}">Rekap Keuangan</a>
             </div>
         @endauth
         <div class="d-flex align-items-center gap-2">
