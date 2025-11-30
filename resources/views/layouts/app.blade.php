@@ -16,6 +16,12 @@
         <a class="navbar-brand" href="{{ route('tagihan.index') }}">
             PT Tunas Media Data
         </a>
+        @auth
+            <div class="navbar-nav me-auto">
+                <a class="nav-link" href="{{ route('tagihan.index') }}">Daftar Tagihan</a>
+                <a class="nav-link" href="{{ route('tagihan.rekap') }}">Rekap Penarikan</a>
+            </div>
+        @endauth
         <div class="d-flex align-items-center gap-2">
             @auth
                 <a href="{{ route('penarikan.index') }}" class="btn btn-sm btn-outline-light">Rekap Penarikan</a>
