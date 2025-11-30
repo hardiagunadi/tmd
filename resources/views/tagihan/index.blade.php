@@ -47,7 +47,7 @@
         </a>
     </div>
 
-    {{-- OPSI CETAK MASSAL 10 / 15 DATA --}}
+    {{-- OPSI CETAK MASSAL 10 / 15 / 20 DATA --}}
     <div class="mb-3">
         <form action="{{ route('tagihan.print.batch') }}" method="POST" target="_blank" class="d-flex align-items-end gap-2">
             @csrf
@@ -60,6 +60,7 @@
                 <select name="jumlah" class="form-select form-select-sm" required>
                     <option value="10">10 data</option>
                     <option value="15">15 data</option>
+                    <option value="20">20 data</option>
                 </select>
             </div>
 

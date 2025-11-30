@@ -16,6 +16,17 @@
         <a class="navbar-brand" href="{{ route('tagihan.index') }}">
             PT Tunas Media Data
         </a>
+        <div class="d-flex align-items-center gap-2">
+            @auth
+                <a href="{{ route('credentials.edit') }}" class="btn btn-sm btn-outline-light">Ganti Kredensial</a>
+                <form method="POST" action="{{ route('logout') }}" class="mb-0">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-light">Logout</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light">Login</a>
+            @endauth
+        </div>
     </div>
 </nav>
 
