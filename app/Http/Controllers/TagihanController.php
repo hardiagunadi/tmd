@@ -38,41 +38,6 @@ class TagihanController extends Controller
         return view('tagihan.index', compact('tagihans', 'bulan', 'tahun', 'search'));
     }
 
-    public function rekap(Request $request): View
-    {
-        $bulan = $request->get('bulan');
-        $tahun = $request->get('tahun', now()->year);
-        $search = trim((string) $request->get('search'));
-
-        $query = Tagihan::query()->where('tahun_tagihan', $tahun);
-
-        if ($bulan) {
-            $query->where('bulan_tagihan', $bulan);
-        }
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_instansi', 'like', "%{$search}%")
-                    ->orWhere('no_invoice', 'like', "%{$search}%")
-                    ->orWhere('no_pelanggan', 'like', "%{$search}%");
-            });
-        }
-
-        $tagihans = $query->orderBy('nama_instansi')->get();
-
-        $totalBayar = $tagihans->sum('total_bayar');
-        $totalPelanggan = $tagihans->count();
-
-        return view('tagihan.rekap', [
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'search' => $search,
-            'tagihans' => $tagihans,
-            'totalBayar' => $totalBayar,
-            'totalPelanggan' => $totalPelanggan,
-        ]);
-    }
-
     public function importForm(): View
     {
         $bulanSekarang = now()->month;
