@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PenarikanController;
-use App\Http\Controllers\PendapatanLainController;
 use App\Http\Controllers\TagihanController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,8 +35,4 @@ Route::middleware('auth')->group(function () {
     Route::post('/rekap-penarikan', [PenarikanController::class, 'store'])->name('penarikan.store');
     Route::patch('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'update'])->name('penarikan.update');
     Route::delete('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'destroy'])->name('penarikan.destroy');
-
-    Route::get('/pendapatan-lain', [PendapatanLainController::class, 'index'])->name('pendapatan-lain.index');
-    Route::post('/pendapatan-lain', [PendapatanLainController::class, 'store'])->name('pendapatan-lain.store');
-    Route::delete('/pendapatan-lain/{pendapatanLain}', [PendapatanLainController::class, 'destroy'])->name('pendapatan-lain.destroy');
 });
