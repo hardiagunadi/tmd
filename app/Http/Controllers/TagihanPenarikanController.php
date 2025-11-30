@@ -15,9 +15,7 @@ class TagihanPenarikanController extends Controller
 
     public function index(Request $request): View
     {
-        //$tahun = $request->integer('tahun') ?? $this->defaultTahun();
-        //$bulan = $request->integer('bulan') ?? $this->defaultBulan($tahun);
-		$tahun = $request->filled('tahun') ? $request->integer('tahun') : $this->defaultTahun();
+        $tahun = $request->filled('tahun') ? $request->integer('tahun') : $this->defaultTahun();
         $bulan = $request->filled('bulan') ? $request->integer('bulan') : $this->defaultBulan($tahun);
         $selectedPetugas = old('petugas', $request->session()->get('selected_penarikan_petugas'));
 
