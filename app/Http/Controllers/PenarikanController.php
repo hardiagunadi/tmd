@@ -15,6 +15,18 @@ class PenarikanController extends Controller
 {
     private const PETUGAS = ['Deswi', 'Slamet', 'Ade'];
 
+    public function printed(): View
+    {
+        [$printedTagihans, $penarikans, $totals] = $this->printedPageData();
+
+        return view('tagihan.penarikan_cetak', [
+            'printedTagihans' => $printedTagihans,
+            'penarikans' => $penarikans,
+            'petugasList' => self::PETUGAS,
+            'totals' => $totals,
+        ]);
+    }
+
     public function index(): View
     {
         $now = now();
@@ -114,6 +126,65 @@ class PenarikanController extends Controller
             ->with('success', 'Rekap penarikan berhasil disimpan.');
     }
 
+    public function storePrinted(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'petugas' => 'required|in:'.implode(',', self::PETUGAS),
+            'nama_pelanggan' => 'required|string|max:255',
+            'nominal' => 'required|integer|min:0',
+            'tagihan_id' => 'nullable|exists:tagihans,id',
+        ]);
+
+        $now = now();
+
+        $tagihan = null;
+        $namaPelanggan = $validated['nama_pelanggan'];
+        $nominal = (int) $validated['nominal'];
+
+        if ($validated['tagihan_id']) {
+            $tagihan = Tagihan::query()
+                ->where('bulan_tagihan', $now->month)
+                ->where('tahun_tagihan', $now->year)
+                ->whereNotNull('printed_at')
+                ->find($validated['tagihan_id']);
+
+            if (! $tagihan) {
+                return Redirect::back()
+                    ->withInput()
+                    ->with('error', 'Tagihan harus berasal dari bulan tagihan saat ini dan sudah dicetak.');
+            }
+
+            $existingPenarikan = TagihanPenarikan::query()
+                ->where('tagihan_id', $tagihan->id)
+                ->whereHas('tagihan', function ($query) use ($now) {
+                    $query
+                        ->where('bulan_tagihan', $now->month)
+                        ->where('tahun_tagihan', $now->year);
+                })
+                ->exists();
+
+            if ($existingPenarikan) {
+                return Redirect::back()
+                    ->withInput()
+                    ->with('error', 'Tagihan sudah direkap untuk bulan ini.');
+            }
+
+            $namaPelanggan = $tagihan->nama_instansi;
+            $nominal = $tagihan->total_bayar;
+        }
+
+        TagihanPenarikan::create([
+            'tagihan_id' => $tagihan?->id,
+            'nama_pelanggan' => $namaPelanggan,
+            'petugas' => $validated['petugas'],
+            'nominal' => $nominal,
+        ]);
+
+        return redirect()
+            ->route('penarikan.printed')
+            ->with('success', 'Rekap penarikan berhasil disimpan.');
+    }
+
     public function destroy(TagihanPenarikan $penarikan): RedirectResponse
     {
         $now = now();
@@ -148,6 +219,57 @@ class PenarikanController extends Controller
         return redirect()
             ->route('penarikan.index')
             ->with('success', 'Nominal penarikan telah diperbarui.');
+    }
+
+    private function printedPageData(): array
+    {
+        $now = now();
+
+        $assignedTagihanIds = TagihanPenarikan::query()
+            ->whereHas('tagihan', function ($query) use ($now) {
+                $query
+                    ->where('bulan_tagihan', $now->month)
+                    ->where('tahun_tagihan', $now->year);
+            })
+            ->pluck('tagihan_id');
+
+        $printedTagihans = Tagihan::query()
+            ->where('bulan_tagihan', $now->month)
+            ->where('tahun_tagihan', $now->year)
+            ->whereNotNull('printed_at')
+            ->orderBy('nama_instansi')
+            ->get([
+                'id',
+                'nama_instansi',
+                'no_invoice',
+                'biaya_langganan',
+                'biaya_admin',
+            ])
+            ->whereNotIn('id', $assignedTagihanIds);
+
+        $penarikans = TagihanPenarikan::query()
+            ->with('tagihan')
+            ->where(function ($query) use ($now) {
+                $query
+                    ->whereHas('tagihan', function ($innerQuery) use ($now) {
+                        $innerQuery
+                            ->where('bulan_tagihan', $now->month)
+                            ->where('tahun_tagihan', $now->year);
+                    })
+                    ->orWhere(function ($innerQuery) use ($now) {
+                        $innerQuery
+                            ->whereNull('tagihan_id')
+                            ->whereMonth('created_at', $now->month)
+                            ->whereYear('created_at', $now->year);
+                    });
+            })
+            ->latest()
+            ->get()
+            ->groupBy('petugas');
+
+        $totals = $this->petugasTotals($penarikans);
+
+        return [$printedTagihans, $penarikans, $totals];
     }
 
     private function petugasTotals(Collection $penarikans): Collection
