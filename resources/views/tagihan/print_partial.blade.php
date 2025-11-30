@@ -39,14 +39,14 @@
             </tr>
         </table>
     </div>
-
+<br><br>
     <div class="mt-3">
         <div class="bold">{{ $tagihan->nama_instansi }}</div>
         <div>
             {{ $tagihan->alamat_instansi }}
         </div>
     </div>
-
+	<br><br>
     <table class="amount-table mt-3">
         <tr>
             <td class="label bold">Biaya Langganan</td>

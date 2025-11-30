@@ -7,16 +7,19 @@ namespace App\Http\Controllers;
 use App\Imports\TagihanRawImport;
 use App\Models\Tagihan;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Session;
+use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TagihanController extends Controller
 {
     // daftar + filter bulan
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $bulan = $request->get('bulan');          // 1–12 atau null
         $tahun = $request->get('tahun', now()->year);
+        $search = trim((string) $request->get('search'));
 
         $query = Tagihan::query()->where('tahun_tagihan', $tahun);
 
@@ -24,9 +27,17 @@ class TagihanController extends Controller
             $query->where('bulan_tagihan', $bulan);
         }
 
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_instansi', 'like', "%{$search}%")
+                    ->orWhere('no_invoice', 'like', "%{$search}%")
+                    ->orWhere('no_pelanggan', 'like', "%{$search}%");
+            });
+        }
+
         $tagihans = $query->orderBy('nama_instansi')->paginate(20);
 
-        return view('tagihan.index', compact('tagihans', 'bulan', 'tahun'));
+        return view('tagihan.index', compact('tagihans', 'bulan', 'tahun', 'search'));
     }
 
     public function importForm()
