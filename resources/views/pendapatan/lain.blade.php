@@ -17,6 +17,8 @@
             <h6 class="card-title">Catat Transaksi</h6>
             <p class="text-muted small mb-3">Lengkapi data pendapatan dan pengeluaran lain-lain beserta petugas penariknya.</p>
 
+            @php($selectedPetugas = old('petugas', session('last_pendapatan_petugas')))
+
             <form method="POST" action="{{ route('pendapatan-lain.store') }}" class="row g-3" id="pendapatan-form">
                 @csrf
                 <div class="col-md-3">
@@ -24,7 +26,7 @@
                     <select name="petugas" class="form-select form-select-sm" required>
                         <option value="">Pilih petugas</option>
                         @foreach($petugasList as $petugas)
-                            <option value="{{ $petugas }}" @selected(old('petugas') === $petugas)>{{ $petugas }}</option>
+                            <option value="{{ $petugas }}" @selected($selectedPetugas === $petugas)>{{ $petugas }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -64,13 +66,20 @@
             @php($total = $totals->get($petugas))
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>{{ $petugas }}</strong>
-                            <div class="d-flex gap-2 align-items-center">
-                                <span class="badge bg-success">Pendapatan: Rp {{ number_format($total['pendapatan'] ?? 0, 0, ',', '.') }}</span>
-                                <span class="badge bg-warning text-dark">Pengeluaran: Rp {{ number_format($total['pengeluaran'] ?? 0, 0, ',', '.') }}</span>
-                                <span class="badge bg-primary">Bersih: Rp {{ number_format($total['bersih'] ?? 0, 0, ',', '.') }}</span>
+                    <div class="card-header pb-2">
+                        <div class="fw-semibold">{{ $petugas }}</div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded bg-success text-white small">
+                                <span class="fw-semibold">Pendapatan</span>
+                                <span class="ms-auto">Rp {{ number_format($total['pendapatan'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded bg-warning text-dark small">
+                                <span class="fw-semibold">Pengeluaran</span>
+                                <span class="ms-auto">Rp {{ number_format($total['pengeluaran'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded bg-primary text-white small">
+                                <span class="fw-semibold">Bersih</span>
+                                <span class="ms-auto">Rp {{ number_format($total['bersih'] ?? 0, 0, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
@@ -81,11 +90,13 @@
                             <div class="list-group list-group-flush">
                                 @foreach($items as $entry)
                                     <div class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
-                                        <div>
-                                            <div class="fw-semibold">{{ $entry->keterangan }}</div>
-                                            <div class="small text-muted">Pendapatan: Rp {{ number_format($entry->pendapatan, 0, ',', '.') }}</div>
-                                            <div class="small text-muted">Pengeluaran: Rp {{ number_format($entry->pengeluaran, 0, ',', '.') }}</div>
-                                            <div class="small text-muted">Bersih: Rp {{ number_format($entry->pendapatan - $entry->pengeluaran, 0, ',', '.') }}</div>
+                                        <div class="w-100">
+                                            <div class="fw-semibold mb-1">{{ $entry->keterangan }}</div>
+                                            <div class="d-flex flex-wrap gap-2 mb-1">
+                                                <span class="badge bg-success text-white">Pendapatan: Rp {{ number_format($entry->pendapatan, 0, ',', '.') }}</span>
+                                                <span class="badge bg-warning text-dark">Pengeluaran: Rp {{ number_format($entry->pengeluaran, 0, ',', '.') }}</span>
+                                                <span class="badge bg-primary">Bersih: Rp {{ number_format($entry->pendapatan - $entry->pengeluaran, 0, ',', '.') }}</span>
+                                            </div>
                                             <div class="small text-muted">{{ $entry->created_at->translatedFormat('d M Y H:i') }}</div>
                                         </div>
                                         <form action="{{ route('pendapatan-lain.destroy', $entry) }}" method="POST" class="ms-auto">

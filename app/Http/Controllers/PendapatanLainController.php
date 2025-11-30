@@ -47,7 +47,8 @@ class PendapatanLainController extends Controller
 
         return redirect()
             ->route('pendapatan-lain.index')
-            ->with('success', 'Pendapatan lain-lain berhasil dicatat.');
+            ->with('success', 'Pendapatan lain-lain berhasil dicatat.')
+            ->with('last_pendapatan_petugas', $validated['petugas']);
     }
 
     public function destroy(PendapatanLain $pendapatanLain): RedirectResponse
