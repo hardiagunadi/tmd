@@ -14,23 +14,49 @@
 
     <div class="card mb-3">
         <div class="card-body">
-            <form method="POST" action="{{ route('penarikan.store') }}" class="row g-3 align-items-end">
+            <form method="GET" class="row g-2 align-items-end mb-3">
+                <div class="col-md-6 col-lg-8">
+                    <label class="form-label form-label-sm">Cari tagihan yang sudah dicetak (bulan berjalan)</label>
+                    <input type="text" name="search" value="{{ $search }}" class="form-control form-control-sm"
+                           placeholder="Cari nama pelanggan, invoice, atau nomor pelanggan">
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <button class="btn btn-sm btn-secondary w-100">Terapkan Pencarian</button>
+                </div>
+            </form>
+
+            <form method="POST" action="{{ route('penarikan.store') }}" class="row g-3">
                 @csrf
-                <div class="col-lg-6">
-                    <label class="form-label form-label-sm">Pilih pelanggan (tagihan sudah dicetak)</label>
-                    <select name="tagihan_id" id="tagihan_id" class="form-select form-select-sm" required>
-                        <option value="">-- Pilih pelanggan bulan ini --</option>
+                <div class="col-md-6">
+                    <label class="form-label form-label-sm">Ambil dari data tagihan (sudah cetak)</label>
+                    <select name="tagihan_id" id="tagihan_id" class="form-select form-select-sm">
+                        <option value="">-- Pilih data tagihan bulan ini --</option>
                         @foreach($printedTagihans as $tagihan)
-                            <option value="{{ $tagihan->id }}" data-nominal="{{ $tagihan->total_bayar }}"
+                            <option value="{{ $tagihan->id }}"
+                                    data-nama="{{ $tagihan->nama_instansi }}"
+                                    data-nominal="{{ $tagihan->total_bayar }}"
                                 {{ old('tagihan_id') == $tagihan->id ? 'selected' : '' }}>
                                 {{ $tagihan->nama_instansi }} — {{ $tagihan->no_invoice }}
                             </option>
                         @endforeach
                     </select>
-                    <div class="form-text">Daftar otomatis disaring untuk tagihan bulan {{ $currentMonthName }} yang belum ditarik.</div>
+                    <div class="form-text">Hanya menampilkan tagihan bulan {{ $currentMonthName }} yang belum ditarik.</div>
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm">Nama pelanggan (isi manual bila perlu)</label>
+                    <input type="text" name="nama_pelanggan" id="nama_pelanggan" class="form-control form-control-sm"
+                           value="{{ old('nama_pelanggan') }}" placeholder="Nama pelanggan">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label form-label-sm">Nominal penarikan</label>
+                    <input type="number" name="nominal" id="nominal" class="form-control form-control-sm"
+                           value="{{ old('nominal') }}" min="0" step="1000" placeholder="0">
+                    <div class="form-text">Terisi otomatis jika memilih tagihan.</div>
+                </div>
+
+                <div class="col-md-3">
                     <label class="form-label form-label-sm">Petugas penarikan</label>
                     <select name="petugas" class="form-select form-select-sm" required>
                         <option value="">Pilih petugas</option>
@@ -40,12 +66,6 @@
                             </option>
                         @endforeach
                     </select>
-                </div>
-
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label form-label-sm">Nominal otomatis</label>
-                    <input type="text" id="nominal" class="form-control form-control-sm" value="-" readonly>
-                    <div class="form-text">Nilai mengikuti total tagihan pelanggan.</div>
                 </div>
 
                 <div class="col-12">
@@ -136,20 +156,52 @@
 @push('scripts')
 <script>
     const selectTagihan = document.getElementById('tagihan_id');
+    const inputNama = document.getElementById('nama_pelanggan');
     const inputNominal = document.getElementById('nominal');
 
-    function syncNominal() {
+    function syncFields() {
         const selected = selectTagihan.options[selectTagihan.selectedIndex];
+        const nama = selected ? selected.getAttribute('data-nama') : '';
         const nominal = selected ? selected.getAttribute('data-nominal') : '';
 
-        inputNominal.value = nominal ? `Rp ${Number(nominal).toLocaleString('id-ID')}` : '-';
+        if (nama) {
+            inputNama.value = nama;
+            inputNama.readOnly = true;
+        } else {
+            inputNama.readOnly = false;
+            if (! inputNama.dataset.manual) {
+                inputNama.value = '';
+            }
+        }
+
+        if (nominal) {
+            inputNominal.value = nominal;
+            inputNominal.readOnly = true;
+        } else {
+            inputNominal.readOnly = false;
+            if (! inputNominal.dataset.manual) {
+                inputNominal.value = '';
+            }
+        }
     }
 
-    if (selectTagihan && inputNominal) {
-        selectTagihan.addEventListener('change', syncNominal);
+    if (selectTagihan && inputNama && inputNominal) {
+        inputNama.addEventListener('input', () => {
+            inputNama.dataset.manual = inputNama.value !== '';
+        });
+
+        inputNominal.addEventListener('input', () => {
+            inputNominal.dataset.manual = inputNominal.value !== '';
+        });
+
+        selectTagihan.addEventListener('change', () => {
+            inputNama.dataset.manual = '';
+            inputNominal.dataset.manual = '';
+            syncFields();
+        });
 
         if (selectTagihan.value) {
-            syncNominal();
+            syncFields();
         }
     }
 </script>

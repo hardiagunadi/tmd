@@ -15,8 +15,9 @@ class TagihanPenarikanController extends Controller
      */
     private array $petugasList = ['Deswi', 'Slamet', 'Ade', 'Hardi'];
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = trim((string) $request->get('search'));
         $now = now();
 
         $printedTagihans = Tagihan::query()
@@ -24,6 +25,13 @@ class TagihanPenarikanController extends Controller
             ->where('bulan_tagihan', $now->month)
             ->where('tahun_tagihan', $now->year)
             ->whereDoesntHave('penarikans')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nama_instansi', 'like', "%{$search}%")
+                        ->orWhere('no_invoice', 'like', "%{$search}%")
+                        ->orWhere('no_pelanggan', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('nama_instansi')
             ->get();
 
@@ -64,6 +72,7 @@ class TagihanPenarikanController extends Controller
             'printedTagihans' => $printedTagihans,
             'penarikansByPetugas' => $penarikansByPetugas,
             'petugasSummary' => $petugasSummary,
+            'search' => $search,
             'currentMonthName' => $now->translatedFormat('F Y'),
         ]);
     }
@@ -71,32 +80,41 @@ class TagihanPenarikanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'tagihan_id' => 'required|exists:tagihans,id',
+            'tagihan_id' => 'nullable|exists:tagihans,id',
+            'nama_pelanggan' => 'required_without:tagihan_id|string|max:255',
             'petugas' => 'required|string|in:Deswi,Slamet,Ade,Hardi',
+            'nominal' => 'required_without:tagihan_id|integer|min:0',
         ]);
 
-        $tagihanId = $validated['tagihan_id'];
+        $tagihanId = $validated['tagihan_id'] ?? null;
+        $nominal = (int) ($validated['nominal'] ?? 0);
+        $namaPelanggan = $validated['nama_pelanggan'] ?? '';
         $now = now();
 
-        $tagihan = Tagihan::whereKey($tagihanId)->firstOrFail();
+        if ($tagihanId) {
+            $tagihan = Tagihan::whereKey($tagihanId)->firstOrFail();
 
-        if (is_null($tagihan->printed_at)) {
-            return back()->withInput()->with('error', 'Tagihan belum dicetak.');
-        }
+            if (is_null($tagihan->printed_at)) {
+                return back()->withInput()->with('error', 'Tagihan belum dicetak.');
+            }
 
-        if ($tagihan->bulan_tagihan !== $now->month || $tagihan->tahun_tagihan !== $now->year) {
-            return back()->withInput()->with('error', 'Tagihan bukan untuk bulan berjalan.');
-        }
+            if ($tagihan->bulan_tagihan !== $now->month || $tagihan->tahun_tagihan !== $now->year) {
+                return back()->withInput()->with('error', 'Tagihan bukan untuk bulan berjalan.');
+            }
 
-        if (TagihanPenarikan::where('tagihan_id', $tagihanId)->exists()) {
-            return back()->withInput()->with('error', 'Tagihan ini sudah direkap.');
+            if (TagihanPenarikan::where('tagihan_id', $tagihanId)->exists()) {
+                return back()->withInput()->with('error', 'Tagihan ini sudah direkap.');
+            }
+
+            $namaPelanggan = $tagihan->nama_instansi;
+            $nominal = $tagihan->total_bayar;
         }
 
         TagihanPenarikan::create([
-            'tagihan_id' => $tagihan->id,
-            'nama_pelanggan' => $tagihan->nama_instansi,
+            'tagihan_id' => $tagihanId,
+            'nama_pelanggan' => $namaPelanggan,
             'petugas' => $validated['petugas'],
-            'nominal' => $tagihan->total_bayar,
+            'nominal' => $nominal,
         ]);
 
         return redirect()
