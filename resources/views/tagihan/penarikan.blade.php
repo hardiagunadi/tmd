@@ -41,30 +41,28 @@
     <div class="card mb-4">
         <div class="card-header">Tambah Entri Penarikan</div>
         <div class="card-body">
-            <p class="text-secondary small mb-3">
-                Pilih petugas penarik dan pelanggan. Data pelanggan serta jumlah tagihan diambil otomatis dari database; data akan tersimpan begitu kedua pilihan dipenuhi. Pelanggan yang sudah ditugaskan ke petugas lain tidak muncul untuk menghindari duplikasi.
+            <p class="text-secondary small">
+                Pilih petugas penarik dan pelanggan. Data pelanggan serta jumlah tagihan diambil otomatis dari database; Anda dapat menyesuaikan nominal jika pembayaran berbeda.
             </p>
-            <form action="{{ route('tagihan.penarikan.store') }}" method="POST" class="row g-3" id="penarikan-form">
+            <form action="{{ route('tagihan.penarikan.store') }}" method="POST" class="row g-3">
                 @csrf
                 <div class="col-md-3">
                     <label class="form-label">Petugas Penarik</label>
-                    <select name="petugas" id="petugas_select" class="form-select" required>
+                    <select name="petugas" class="form-select" required>
                         <option value="">-- Pilih Petugas --</option>
                         @foreach($petugasList as $petugas)
-                            <option value="{{ $petugas }}" {{ $selectedPetugas === $petugas ? 'selected' : '' }}>{{ $petugas }}</option>
+                            <option value="{{ $petugas }}" {{ old('petugas') === $petugas ? 'selected' : '' }}>{{ $petugas }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Pelanggan (berdasarkan bulan/tahun tagihan)</label>
-                    <input type="hidden" name="tagihan_id" id="tagihan_id" value="{{ old('tagihan_id') }}">
-                    <input type="text" class="form-control" id="tagihan_search" list="tagihan_list" placeholder="Ketik nama pelanggan" autocomplete="off">
-                    <datalist id="tagihan_list">
-                        @foreach($tagihansUntukInput as $tagihan)
-                            <option value="{{ $tagihan->nama_instansi }} | Invoice {{ $tagihan->no_invoice }} | {{ $tagihan->nama_bulan_tagihan }} {{ $tagihan->tahun_tagihan }} | Rp {{ number_format($tagihan->total_bayar,0,',','.') }}" data-id="{{ $tagihan->id }}" data-nominal="{{ $tagihan->total_bayar }}" data-search="{{ \Illuminate\Support\Str::lower($tagihan->nama_instansi) }}"></option>
+                    <select name="tagihan_id" id="tagihan_id" class="form-select" required data-selected-nominal="{{ old('nominal') }}">
+                        <option value="">-- Pilih Pelanggan --</option>
+                        @foreach($tagihans as $tagihan)
+                            <option value="{{ $tagihan->id }}" data-nominal="{{ $tagihan->total_bayar }}" {{ old('tagihan_id') == $tagihan->id ? 'selected' : '' }}>{{ $tagihan->nama_instansi }} | Invoice {{ $tagihan->no_invoice }} | {{ $tagihan->nama_bulan_tagihan }} {{ $tagihan->tahun_tagihan }} | Rp {{ number_format($tagihan->total_bayar,0,',','.') }}</option>
                         @endforeach
-                    </datalist>
-                    <div class="form-text">Ketik atau pilih nama pelanggan. Data yang sudah ditugaskan tidak akan tampil.</div>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Nominal (opsional)</label>
@@ -72,6 +70,9 @@
                         <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal" id="nominal_input" class="form-control" min="0" placeholder="Otomatis dari tagihan" value="{{ old('nominal') }}">
                     </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary">Simpan ke Petugas</button>
                 </div>
             </form>
         </div>
@@ -81,100 +82,57 @@
         <div class="card-header">
             Daftar Penarikan per Petugas ({{ $bulan ? \Carbon\Carbon::create(null, $bulan, 1)->translatedFormat('F') : 'Semua Bulan' }} {{ $tahun }})
         </div>
-        <div class="card-body">
-            <div class="row g-3 mb-4 row-cols-1 row-cols-md-2 row-cols-xl-4">
-                @foreach($petugasList as $petugas)
-                    @php
-                        $dataPetugas = $penarikanByPetugas->get($petugas, collect());
-                        $totalPetugas = $dataPetugas->sum('nominal');
-                        $jumlahTagihan = $dataPetugas->count();
-                    @endphp
-                    <div class="col">
-                        <div class="border rounded px-3 py-2 bg-light h-100">
-                            <div class="fw-semibold">{{ $petugas }}</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <div class="small text-secondary">{{ $jumlahTagihan }} tagihan</div>
-                                <div class="fw-semibold">Rp {{ number_format($totalPetugas,0,',','.') }}</div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-                <div class="col">
-                    <div class="border rounded px-3 py-2 bg-white h-100">
-                        <div class="small text-secondary">Total Semua Petugas</div>
-                        <div class="fw-semibold fs-5 text-primary">Rp {{ number_format($totalKeseluruhan,0,',','.') }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-4 row-cols-1 row-cols-md-2 row-cols-xl-4">
-                @foreach($petugasList as $petugas)
-                    @php
-                        $dataPetugas = $penarikanByPetugas->get($petugas, collect());
-                        $totalPetugas = $dataPetugas->sum('nominal');
-                        $jumlahTagihan = $dataPetugas->count();
-                    @endphp
-                    <div class="col">
-                        <div class="border rounded h-100 d-flex flex-column">
-                            <div class="bg-light px-3 py-2 d-flex justify-content-between align-items-center">
-                                <div class="fw-semibold">{{ $petugas }}</div>
-                                <div class="text-muted small text-end">
-                                    <div>Total: Rp {{ number_format($totalPetugas,0,',','.') }}</div>
-                                    <div>{{ $jumlahTagihan }} tagihan</div>
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm mb-0 align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Pelanggan</th>
-                                            <th>Invoice</th>
-                                            <th>Bulan Tagihan</th>
-                                            <th class="text-end">Nominal</th>
-                                            <th width="260">Ubah Penarikan</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($dataPetugas as $penarikan)
-                                            <tr>
-                                                <td>{{ $penarikan->nama_pelanggan }}</td>
-                                                <td>{{ $penarikan->tagihan?->no_invoice ?? '-' }}</td>
-                                                <td>{{ $penarikan->tagihan ? $penarikan->tagihan->nama_bulan_tagihan.' '.$penarikan->tagihan->tahun_tagihan : '-' }}</td>
-                                                <td class="text-end">Rp {{ number_format($penarikan->nominal,0,',','.') }}</td>
-                                                <td>
-                                                    <form action="{{ route('tagihan.penarikan.update', $penarikan) }}" method="POST" class="row g-2 align-items-center">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <div class="col-md-4">
-                                                            <select name="petugas" class="form-select form-select-sm" required>
-                                                                @foreach($petugasList as $petugasOption)
-                                                                    <option value="{{ $petugasOption }}" {{ $penarikan->petugas === $petugasOption ? 'selected' : '' }}>{{ $petugasOption }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-md-5">
-                                                            <div class="input-group input-group-sm">
-                                                                <span class="input-group-text">Rp</span>
-                                                                <input type="number" name="nominal" class="form-control" min="0" value="{{ $penarikan->nominal }}" required>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button class="btn btn-sm btn-outline-primary w-100">Update</button>
-                                                        </div>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="5" class="text-center text-secondary py-3">Belum ada data penarikan untuk petugas ini.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Petugas</th>
+                            <th>Pelanggan</th>
+                            <th>Invoice</th>
+                            <th>Bulan Tagihan</th>
+                            <th class="text-end">Nominal</th>
+                            <th width="260">Ubah Penarikan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($penarikans as $penarikan)
+                            <tr>
+                                <td>{{ $penarikan->petugas }}</td>
+                                <td>{{ $penarikan->nama_pelanggan }}</td>
+                                <td>{{ $penarikan->tagihan?->no_invoice ?? '-' }}</td>
+                                <td>{{ $penarikan->tagihan ? $penarikan->tagihan->nama_bulan_tagihan.' '.$penarikan->tagihan->tahun_tagihan : '-' }}</td>
+                                <td class="text-end">Rp {{ number_format($penarikan->nominal,0,',','.') }}</td>
+                                <td>
+                                    <form action="{{ route('tagihan.penarikan.update', $penarikan) }}" method="POST" class="row g-2 align-items-center">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="col-md-4">
+                                            <select name="petugas" class="form-select form-select-sm" required>
+                                                @foreach($petugasList as $petugas)
+                                                    <option value="{{ $petugas }}" {{ $penarikan->petugas === $petugas ? 'selected' : '' }}>{{ $petugas }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text">Rp</span>
+                                                <input type="number" name="nominal" class="form-control" min="0" value="{{ $penarikan->nominal }}" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button class="btn btn-sm btn-outline-primary w-100">Update</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary py-3">Belum ada data penarikan untuk periode ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -184,57 +142,21 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('penarikan-form');
-        const petugasSelect = document.getElementById('petugas_select');
-        const tagihanInput = document.getElementById('tagihan_search');
-        const tagihanHidden = document.getElementById('tagihan_id');
+        const selectTagihan = document.getElementById('tagihan_id');
         const nominalInput = document.getElementById('nominal_input');
-        const tagihanList = document.getElementById('tagihan_list').options;
+        const storedNominal = selectTagihan.dataset.selectedNominal;
 
-        let isSubmitting = false;
+        const setNominal = () => {
+            const option = selectTagihan.options[selectTagihan.selectedIndex];
+            const nominal = option?.dataset?.nominal || '';
 
-        const isiNominal = (option) => {
-            const nominal = option?.dataset?.nominal;
-            if (nominal && ! nominalInput.value) {
+            if (! storedNominal && nominal) {
                 nominalInput.value = nominal;
             }
         };
 
-        const submitJikaLengkap = () => {
-            if (! isSubmitting && petugasSelect.value && tagihanHidden.value) {
-                isSubmitting = true;
-                form.submit();
-            }
-        };
-
-        tagihanInput.addEventListener('input', () => {
-            const value = tagihanInput.value;
-            const opsiExact = Array.from(tagihanList).find((option) => option.value === value);
-
-            if (opsiExact) {
-                tagihanHidden.value = opsiExact.dataset.id;
-                isiNominal(opsiExact);
-                submitJikaLengkap();
-
-                return;
-            }
-
-            const opsiByName = Array.from(tagihanList).filter((option) => option.dataset.search?.includes(value.toLowerCase()));
-
-            if (opsiByName.length === 1) {
-                const opsi = opsiByName[0];
-                tagihanInput.value = opsi.value;
-                tagihanHidden.value = opsi.dataset.id;
-                isiNominal(opsi);
-                submitJikaLengkap();
-
-                return;
-            }
-
-            tagihanHidden.value = '';
-        });
-
-        petugasSelect.addEventListener('change', submitJikaLengkap);
+        selectTagihan.addEventListener('change', setNominal);
+        setNominal();
     });
 </script>
 @endpush
