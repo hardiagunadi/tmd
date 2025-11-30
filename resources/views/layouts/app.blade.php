@@ -17,9 +17,7 @@
             PT Tunas Media Data
         </a>
         <div class="d-flex align-items-center gap-2">
-            @auth
-                <a href="{{ route('penarikan.index') }}" class="btn btn-sm btn-outline-light">Rekap Penarikan</a>
-            @endauth
+
             @auth
                 <a href="{{ route('credentials.edit') }}" class="btn btn-sm btn-outline-light">Ganti Kredensial</a>
                 <form method="POST" action="{{ route('logout') }}" class="mb-0">
