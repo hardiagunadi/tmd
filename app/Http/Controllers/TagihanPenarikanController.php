@@ -129,7 +129,7 @@ class TagihanPenarikanController extends Controller
 
     private function defaultTahun(): int
     {
-        return Tagihan::query()->max('tahun_tagihan') ?? now()->year;
+        return now()->year;
     }
 
     private function defaultBulan(int $tahun): ?int
