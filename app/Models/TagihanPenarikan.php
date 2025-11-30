@@ -14,7 +14,15 @@ class TagihanPenarikan extends Model
         'tagihan_id',
         'nama_pelanggan',
         'petugas',
+        'nominal',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'nominal' => 'integer',
+        ];
+    }
 
     public function tagihan(): BelongsTo
     {

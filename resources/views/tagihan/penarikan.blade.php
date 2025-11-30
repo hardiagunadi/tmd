@@ -24,7 +24,7 @@
                     <select name="petugas" class="form-select form-select-sm" id="petugas-select" required>
                         <option value="">Pilih petugas</option>
                         @foreach($petugasList as $petugas)
-                            <option value="{{ $petugas }}" @selected(old('petugas') === $petugas)>
+                            <option value="{{ $petugas }}" @selected(old('petugas', $petugasPreference) === $petugas)>
                                 {{ $petugas }}
                             </option>
                         @endforeach
@@ -88,15 +88,35 @@
                                             <div class="fw-semibold">{{ $item->nama_pelanggan }}</div>
                                             @if($item->tagihan)
                                                 <div class="small text-muted">Invoice: {{ $item->tagihan->no_invoice }}</div>
-                                                <div class="small text-muted">Rp {{ number_format($item->tagihan->total_bayar, 0, ',', '.') }}</div>
+                                                <div class="small text-muted">Tagihan: Rp {{ number_format($item->tagihan->total_bayar, 0, ',', '.') }}</div>
                                             @endif
                                             <div class="small text-muted">{{ $item->created_at->translatedFormat('d M Y H:i') }}</div>
                                         </div>
-                                        <form action="{{ route('penarikan.destroy', $item) }}" method="POST" class="ms-auto">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-link text-danger p-0 small">Hapus</button>
-                                        </form>
+                                        <div class="ms-auto d-flex flex-column align-items-end gap-2">
+                                            <form action="{{ route('penarikan.update', $item) }}" method="POST" class="d-flex align-items-center gap-2 penarikan-nominal-form">
+                                                @csrf
+                                                @method('PATCH')
+                                                <label class="small text-muted mb-0">Terkumpul:</label>
+                                                <div class="input-group input-group-sm" style="width: 170px;">
+                                                    <span class="input-group-text">Rp</span>
+                                                    <input
+                                                        type="number"
+                                                        name="nominal"
+                                                        class="form-control form-control-sm penarikan-nominal-input"
+                                                        value="{{ $item->nominal }}"
+                                                        min="0"
+                                                        max="{{ $item->tagihan?->total_bayar }}"
+                                                        step="100"
+                                                        required
+                                                    >
+                                                </div>
+                                            </form>
+                                            <form action="{{ route('penarikan.destroy', $item) }}" method="POST" class="ms-auto">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link text-danger p-0 small">Hapus</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
@@ -116,6 +136,7 @@
             const options = Array.from(document.getElementById('tagihan-options').options);
             const form = document.getElementById('penarikan-form');
             const petugasSelect = document.getElementById('petugas-select');
+            const nominalForms = document.querySelectorAll('.penarikan-nominal-form');
 
             const defaultHint = 'Pilih tagihan tercetak bulan ini untuk langsung direkap ke petugas.';
 
@@ -147,6 +168,18 @@
             });
 
             petugasSelect.addEventListener('change', attemptSubmit);
+
+            nominalForms.forEach((nominalForm) => {
+                const input = nominalForm.querySelector('.penarikan-nominal-input');
+
+                if (! input) {
+                    return;
+                }
+
+                input.addEventListener('change', () => {
+                    nominalForm.submit();
+                });
+            });
 
             syncSelection();
         })();

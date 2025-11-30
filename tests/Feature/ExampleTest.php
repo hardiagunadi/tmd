@@ -68,6 +68,7 @@ class ExampleTest extends TestCase
             'tagihan_id' => $tagihan->id,
             'nama_pelanggan' => 'SMP Negeri 1',
             'petugas' => 'Deswi',
+            'nominal' => 105000,
         ]);
     }
 
@@ -154,18 +155,21 @@ class ExampleTest extends TestCase
             'petugas' => 'Deswi',
             'nama_pelanggan' => 'Pelanggan Deswi',
             'tagihan_id' => $deswiTagihan->id,
+            'nominal' => $deswiTagihan->total_bayar,
         ]);
 
         TagihanPenarikan::create([
             'petugas' => 'Ade',
             'nama_pelanggan' => 'Pelanggan Ade',
             'tagihan_id' => $adeTagihan->id,
+            'nominal' => $adeTagihan->total_bayar,
         ]);
 
         TagihanPenarikan::create([
             'petugas' => 'Deswi',
             'nama_pelanggan' => 'Pelanggan Lama',
             'tagihan_id' => $oldMonthTagihan->id,
+            'nominal' => $oldMonthTagihan->total_bayar,
         ]);
 
         $response = $this->actingAs($user)->get(route('penarikan.index'));
@@ -186,5 +190,49 @@ class ExampleTest extends TestCase
         $this->assertDatabaseMissing('tagihan_penarikans', [
             'id' => $deswiPenarikan->id,
         ]);
+    }
+
+    public function test_penarikan_nominal_can_be_adjusted_inline(): void
+    {
+        Carbon::setTestNow(Carbon::create(2025, 3, 15));
+
+        $this->seed();
+        $user = User::first();
+
+        $tagihan = Tagihan::create([
+            'nama_instansi' => 'Pelanggan Parsial',
+            'alamat_instansi' => 'Alamat D',
+            'no_invoice' => 'INV-PRC-001',
+            'no_pelanggan' => 'PLG-PRC-01',
+            'bulan_tagihan' => 3,
+            'tahun_tagihan' => 2025,
+            'biaya_langganan' => 200000,
+            'biaya_admin' => 10000,
+            'deskripsi_paket' => 'Paket C',
+            'printed_at' => now(),
+        ]);
+
+        $penarikan = TagihanPenarikan::create([
+            'petugas' => 'Slamet',
+            'nama_pelanggan' => 'Pelanggan Parsial',
+            'tagihan_id' => $tagihan->id,
+            'nominal' => $tagihan->total_bayar,
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('penarikan.update', $penarikan), [
+            'nominal' => 75000,
+        ]);
+
+        $response->assertRedirect(route('penarikan.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('tagihan_penarikans', [
+            'id' => $penarikan->id,
+            'nominal' => 75000,
+        ]);
+
+        $page = $this->actingAs($user)->get(route('penarikan.index'));
+
+        $page->assertSee('Rp 75.000');
     }
 }

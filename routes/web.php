@@ -33,5 +33,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/rekap-penarikan', [PenarikanController::class, 'index'])->name('penarikan.index');
     Route::post('/rekap-penarikan', [PenarikanController::class, 'store'])->name('penarikan.store');
+    Route::patch('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'update'])->name('penarikan.update');
     Route::delete('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'destroy'])->name('penarikan.destroy');
 });

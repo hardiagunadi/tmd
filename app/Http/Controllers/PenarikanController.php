@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
 class PenarikanController extends Controller
@@ -43,11 +44,14 @@ class PenarikanController extends Controller
 
         $totals = $this->petugasTotals($penarikans);
 
+        $petugasPreference = session('penarikan_petugas');
+
         return view('tagihan.penarikan', [
             'printedTagihans' => $printedTagihans,
             'penarikans' => $penarikans,
             'petugasList' => self::PETUGAS,
             'totals' => $totals,
+            'petugasPreference' => $petugasPreference,
         ]);
     }
 
@@ -76,7 +80,10 @@ class PenarikanController extends Controller
             'tagihan_id' => $tagihan->id,
             'nama_pelanggan' => $tagihan->nama_instansi,
             'petugas' => $validated['petugas'],
+            'nominal' => $tagihan->total_bayar,
         ]);
+
+        Session::put('penarikan_petugas', $validated['petugas']);
 
         return redirect()
             ->route('penarikan.index')
@@ -98,6 +105,27 @@ class PenarikanController extends Controller
             ->with('success', 'Data penarikan telah dihapus.');
     }
 
+    public function update(Request $request, TagihanPenarikan $penarikan): RedirectResponse
+    {
+        $now = now();
+
+        if (! $penarikan->tagihan || $penarikan->tagihan->bulan_tagihan !== $now->month || $penarikan->tagihan->tahun_tagihan !== $now->year) {
+            return Redirect::back()->with('error', 'Data penarikan tidak ditemukan untuk bulan ini.');
+        }
+
+        $request->validate([
+            'nominal' => 'required|integer|min:0|max:'.$penarikan->tagihan->total_bayar,
+        ]);
+
+        $penarikan->update([
+            'nominal' => (int) $request->integer('nominal'),
+        ]);
+
+        return redirect()
+            ->route('penarikan.index')
+            ->with('success', 'Nominal penarikan telah diperbarui.');
+    }
+
     private function petugasTotals(Collection $penarikans): Collection
     {
         return collect(self::PETUGAS)
@@ -107,7 +135,7 @@ class PenarikanController extends Controller
                 return [
                     $petugas => [
                         'count' => $items->count(),
-                        'amount' => $items->sum(fn (TagihanPenarikan $penarikan): int => $penarikan->tagihan?->total_bayar ?? 0),
+                        'amount' => $items->sum(fn (TagihanPenarikan $penarikan): int => $penarikan->nominal ?? 0),
                     ],
                 ];
             });
