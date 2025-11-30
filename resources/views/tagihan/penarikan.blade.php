@@ -131,45 +131,18 @@
                                     <thead>
                                         <tr>
                                             <th>Pelanggan</th>
-                                            <th>Invoice</th>
-                                            <th>Bulan Tagihan</th>
                                             <th class="text-end">Nominal</th>
-                                            <th width="260">Ubah Penarikan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($dataPetugas as $penarikan)
                                             <tr>
                                                 <td>{{ $penarikan->nama_pelanggan }}</td>
-                                                <td>{{ $penarikan->tagihan?->no_invoice ?? '-' }}</td>
-                                                <td>{{ $penarikan->tagihan ? $penarikan->tagihan->nama_bulan_tagihan.' '.$penarikan->tagihan->tahun_tagihan : '-' }}</td>
                                                 <td class="text-end">Rp {{ number_format($penarikan->nominal,0,',','.') }}</td>
-                                                <td>
-                                                    <form action="{{ route('tagihan.penarikan.update', $penarikan) }}" method="POST" class="row g-2 align-items-center">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <div class="col-md-4">
-                                                            <select name="petugas" class="form-select form-select-sm" required>
-                                                                @foreach($petugasList as $petugasOption)
-                                                                    <option value="{{ $petugasOption }}" {{ $penarikan->petugas === $petugasOption ? 'selected' : '' }}>{{ $petugasOption }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-md-5">
-                                                            <div class="input-group input-group-sm">
-                                                                <span class="input-group-text">Rp</span>
-                                                                <input type="number" name="nominal" class="form-control" min="0" value="{{ $penarikan->nominal }}" required>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button class="btn btn-sm btn-outline-primary w-100">Update</button>
-                                                        </div>
-                                                    </form>
-                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center text-secondary py-3">Belum ada data penarikan untuk petugas ini.</td>
+                                                <td colspan="2" class="text-center text-secondary py-3">Belum ada data penarikan untuk petugas ini.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
