@@ -36,6 +36,12 @@
                        value="{{ $tahun }}" style="width: 90px;">
             </div>
 
+            <div>
+                <label class="form-label form-label-sm">Cari data</label>
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Instansi / invoice / pelanggan"
+                       value="{{ $search }}" style="width: 220px;">
+            </div>
+
             <div class="align-self-end">
                 <button class="btn btn-sm btn-primary">Filter</button>
             </div>
@@ -76,45 +82,60 @@
         </form>
     </div>
 
-    <table class="table table-sm table-bordered align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>#</th>
-                <th>Instansi</th>
-                <th>No Invoice</th>
-                <th>No Pelanggan</th>
-                <th>Bulan Tagihan</th>
-                <th>Total</th>
-                <th>Status Cetak</th>
-                <th width="80">Cetak</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach($tagihans as $row)
-            <tr>
-                <td>{{ $loop->iteration + ($tagihans->currentPage()-1)*$tagihans->perPage() }}</td>
-                <td>{{ $row->nama_instansi }}</td>
-                <td>{{ $row->no_invoice }}</td>
-                <td>{{ $row->no_pelanggan }}</td>
-                <td>{{ $row->nama_bulan_tagihan }} {{ $row->tahun_tagihan }}</td>
-                <td class="text-end">{{ number_format($row->total_bayar,0,',','.') }}</td>
-                <td>
-                    @if($row->printed_at)
-                        <span class="badge bg-success">Sudah cetak</span>
-                    @else
-                        <span class="badge bg-secondary">Belum cetak</span>
-                    @endif
-                </td>
-                <td class="text-center">
-                    <a href="{{ route('tagihan.print', $row) }}" target="_blank"
-                       class="btn btn-sm btn-outline-dark">
-                        Cetak
-                    </a>
-                </td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
+    <form action="{{ route('tagihan.print.batch') }}" method="POST" target="_blank" class="card card-body">
+        @csrf
+        <input type="hidden" name="bulan" value="{{ $bulan }}">
+        <input type="hidden" name="tahun" value="{{ $tahun }}">
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="mb-0 small text-secondary">Centang data yang ingin dicetak secara manual.</p>
+            <button class="btn btn-sm btn-outline-primary">Cetak Manual</button>
+        </div>
+
+        <table class="table table-sm table-bordered align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th width="40" class="text-center">Pilih</th>
+                    <th>#</th>
+                    <th>Instansi</th>
+                    <th>No Invoice</th>
+                    <th>No Pelanggan</th>
+                    <th>Bulan Tagihan</th>
+                    <th>Total</th>
+                    <th>Status Cetak</th>
+                    <th width="80">Cetak</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach($tagihans as $row)
+                <tr>
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input" name="selected[]" value="{{ $row->id }}">
+                    </td>
+                    <td>{{ $loop->iteration + ($tagihans->currentPage()-1)*$tagihans->perPage() }}</td>
+                    <td>{{ $row->nama_instansi }}</td>
+                    <td>{{ $row->no_invoice }}</td>
+                    <td>{{ $row->no_pelanggan }}</td>
+                    <td>{{ $row->nama_bulan_tagihan }} {{ $row->tahun_tagihan }}</td>
+                    <td class="text-end">{{ number_format($row->total_bayar,0,',','.') }}</td>
+                    <td>
+                        @if($row->printed_at)
+                            <span class="badge bg-success">Sudah cetak</span>
+                        @else
+                            <span class="badge bg-secondary">Belum cetak</span>
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ route('tagihan.print', $row) }}" target="_blank"
+                           class="btn btn-sm btn-outline-dark">
+                            Cetak
+                        </a>
+                    </td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </form>
 
     {{ $tagihans->withQueryString()->links() }}
 </div>
