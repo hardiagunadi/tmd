@@ -33,4 +33,5 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/rekap-penarikan', [PenarikanController::class, 'index'])->name('penarikan.index');
     Route::post('/rekap-penarikan', [PenarikanController::class, 'store'])->name('penarikan.store');
+    Route::delete('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'destroy'])->name('penarikan.destroy');
 });

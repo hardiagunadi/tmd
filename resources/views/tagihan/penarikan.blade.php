@@ -14,14 +14,14 @@
 
     <div class="card mt-3 mb-4">
         <div class="card-body">
-            <h6 class="card-title">Catat Penarikan Baru</h6>
-            <p class="text-muted small mb-3">Masukkan nama pelanggan secara manual atau pilih langsung dari daftar tagihan yang sudah dicetak.</p>
+            <h6 class="card-title">Catat Penarikan Bulan Ini</h6>
+            <p class="text-muted small mb-3">Pilih petugas dan tagihan tercetak pada bulan tagihan ini. Data akan langsung disimpan tanpa tombol simpan.</p>
 
-            <form method="POST" action="{{ route('penarikan.store') }}" class="row g-3">
+            <form method="POST" action="{{ route('penarikan.store') }}" class="row g-3" id="penarikan-form">
                 @csrf
                 <div class="col-md-3">
                     <label class="form-label form-label-sm">Petugas Penarik</label>
-                    <select name="petugas" class="form-select form-select-sm" required>
+                    <select name="petugas" class="form-select form-select-sm" id="petugas-select" required>
                         <option value="">Pilih petugas</option>
                         @foreach($petugasList as $petugas)
                             <option value="{{ $petugas }}" @selected(old('petugas') === $petugas)>
@@ -31,34 +31,35 @@
                     </select>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label form-label-sm">Nama Pelanggan</label>
-                    <input type="text" name="nama_pelanggan" list="pelanggan-list"
-                           class="form-control form-control-sm"
-                           placeholder="Ketik manual atau pilih dari daftar"
-                           value="{{ old('nama_pelanggan') }}">
-                    <datalist id="pelanggan-list">
+                @php($selectedTagihan = $printedTagihans->firstWhere('id', (int) old('tagihan_id')))
+                <div class="col-md-9">
+                    <label class="form-label form-label-sm">Ambil dari Database</label>
+                    <input type="hidden" name="tagihan_id" id="selected-tagihan-id" value="{{ old('tagihan_id') }}">
+                    <input
+                        type="text"
+                        id="tagihan-search"
+                        list="tagihan-options"
+                        class="form-control form-control-sm"
+                        placeholder="Ketik nama pelanggan untuk mencari tagihan"
+                        value="{{ $selectedTagihan ? $selectedTagihan->nama_instansi.' ('.$selectedTagihan->no_invoice.') - Rp '.number_format($selectedTagihan->total_bayar, 0, ',', '.') : '' }}"
+                        autocomplete="off"
+                    >
+                    <datalist id="tagihan-options">
                         @foreach($printedTagihans as $tagihan)
-                            <option value="{{ $tagihan->nama_instansi }}"></option>
+                            <option
+                                value="{{ $tagihan->nama_instansi }} ({{ $tagihan->no_invoice }}) - Rp {{ number_format($tagihan->total_bayar, 0, ',', '.') }}"
+                                data-id="{{ $tagihan->id }}"
+                                data-total="{{ number_format($tagihan->total_bayar, 0, ',', '.') }}"
+                            ></option>
                         @endforeach
                     </datalist>
-                </div>
-
-                <div class="col-md-5">
-                    <label class="form-label form-label-sm">Ambil dari Database (opsional)</label>
-                    <select name="tagihan_id" class="form-select form-select-sm">
-                        <option value="">-- Pilih tagihan yang sudah dicetak --</option>
-                        @foreach($printedTagihans as $tagihan)
-                            <option value="{{ $tagihan->id }}" @selected((string) old('tagihan_id') === (string) $tagihan->id)>
-                                {{ $tagihan->nama_instansi }} ({{ $tagihan->no_invoice }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <div class="form-text">Jika dipilih, nama pelanggan akan mengikuti data tagihan.</div>
-                </div>
-
-                <div class="col-12">
-                    <button class="btn btn-primary btn-sm">Simpan Penarikan</button>
+                    <div class="form-text" id="tagihan-total-hint">
+                        @if($selectedTagihan)
+                            Jumlah tagihan: Rp {{ number_format($selectedTagihan->total_bayar, 0, ',', '.') }}
+                        @else
+                            Pilih tagihan tercetak bulan ini untuk langsung direkap ke petugas.
+                        @endif
+                    </div>
                 </div>
             </form>
         </div>
@@ -70,8 +71,11 @@
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <strong>{{ $petugas }}</strong>
-                        <span class="badge bg-primary">{{ $totals->get($petugas) }} Tagihan</span>
+                        <div>
+                            <strong>{{ $petugas }}</strong>
+                            <span class="badge bg-secondary ms-2">{{ $totals->get($petugas)['count'] ?? 0 }} Tagihan</span>
+                        </div>
+                        <span class="badge bg-primary">Rp {{ number_format($totals->get($petugas)['amount'] ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="card-body">
                         @if($items->isEmpty())
@@ -79,12 +83,20 @@
                         @else
                             <div class="list-group list-group-flush">
                                 @foreach($items as $item)
-                                    <div class="list-group-item px-0">
-                                        <div class="fw-semibold">{{ $item->nama_pelanggan }}</div>
-                                        @if($item->tagihan)
-                                            <div class="small text-muted">Invoice: {{ $item->tagihan->no_invoice }}</div>
-                                        @endif
-                                        <div class="small text-muted">{{ $item->created_at->translatedFormat('d M Y H:i') }}</div>
+                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <div class="fw-semibold">{{ $item->nama_pelanggan }}</div>
+                                            @if($item->tagihan)
+                                                <div class="small text-muted">Invoice: {{ $item->tagihan->no_invoice }}</div>
+                                                <div class="small text-muted">Rp {{ number_format($item->tagihan->total_bayar, 0, ',', '.') }}</div>
+                                            @endif
+                                            <div class="small text-muted">{{ $item->created_at->translatedFormat('d M Y H:i') }}</div>
+                                        </div>
+                                        <form action="{{ route('penarikan.destroy', $item) }}" method="POST" class="ms-auto">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-link text-danger p-0 small">Hapus</button>
+                                        </form>
                                     </div>
                                 @endforeach
                             </div>
@@ -95,4 +107,49 @@
         @endforeach
     </div>
 </div>
+@push('scripts')
+    <script>
+        (function () {
+            const searchInput = document.getElementById('tagihan-search');
+            const hiddenId = document.getElementById('selected-tagihan-id');
+            const totalHint = document.getElementById('tagihan-total-hint');
+            const options = Array.from(document.getElementById('tagihan-options').options);
+            const form = document.getElementById('penarikan-form');
+            const petugasSelect = document.getElementById('petugas-select');
+
+            const defaultHint = 'Pilih tagihan tercetak bulan ini untuk langsung direkap ke petugas.';
+
+            function syncSelection() {
+                const matchedOption = options.find((option) => option.value === searchInput.value);
+
+                if (matchedOption) {
+                    hiddenId.value = matchedOption.dataset.id || '';
+                    totalHint.textContent = `Jumlah tagihan: Rp ${matchedOption.dataset.total}`;
+                    attemptSubmit();
+                } else {
+                    hiddenId.value = '';
+                    totalHint.textContent = defaultHint;
+                }
+            }
+
+            function attemptSubmit() {
+                if (petugasSelect.value && hiddenId.value) {
+                    form.submit();
+                }
+            }
+
+            searchInput.addEventListener('change', syncSelection);
+            searchInput.addEventListener('input', () => {
+                if (searchInput.value === '') {
+                    hiddenId.value = '';
+                    totalHint.textContent = defaultHint;
+                }
+            });
+
+            petugasSelect.addEventListener('change', attemptSubmit);
+
+            syncSelection();
+        })();
+    </script>
+@endpush
 @endsection

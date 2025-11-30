@@ -7,6 +7,7 @@ use App\Models\TagihanPenarikan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
 class PenarikanController extends Controller
@@ -15,12 +16,27 @@ class PenarikanController extends Controller
 
     public function index(): View
     {
+        $now = now();
+
         $printedTagihans = Tagihan::query()
+            ->where('bulan_tagihan', $now->month)
+            ->where('tahun_tagihan', $now->year)
             ->whereNotNull('printed_at')
             ->orderBy('nama_instansi')
-            ->get(['id', 'nama_instansi', 'no_invoice']);
+            ->get([
+                'id',
+                'nama_instansi',
+                'no_invoice',
+                'biaya_langganan',
+                'biaya_admin',
+            ]);
 
         $penarikans = TagihanPenarikan::with('tagihan')
+            ->whereHas('tagihan', function ($query) use ($now) {
+                $query
+                    ->where('bulan_tagihan', $now->month)
+                    ->where('tahun_tagihan', $now->year);
+            })
             ->latest()
             ->get()
             ->groupBy('petugas');
@@ -39,39 +55,26 @@ class PenarikanController extends Controller
     {
         $validated = $request->validate([
             'petugas' => 'required|in:'.implode(',', self::PETUGAS),
-            'tagihan_id' => 'nullable|exists:tagihans,id',
-            'nama_pelanggan' => 'nullable|string|max:255',
+            'tagihan_id' => 'required|exists:tagihans,id',
         ]);
 
-        $tagihan = null;
+        $now = now();
 
-        if (! empty($validated['tagihan_id'])) {
-            $tagihan = Tagihan::query()
-                ->whereNotNull('printed_at')
-                ->find($validated['tagihan_id']);
+        $tagihan = Tagihan::query()
+            ->where('bulan_tagihan', $now->month)
+            ->where('tahun_tagihan', $now->year)
+            ->whereNotNull('printed_at')
+            ->find($validated['tagihan_id']);
 
-            if (! $tagihan) {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Tagihan harus sudah dicetak sebelum direkap.');
-            }
-        }
-
-        $namaPelanggan = $validated['nama_pelanggan'] ?? '';
-
-        if (! $namaPelanggan && $tagihan) {
-            $namaPelanggan = $tagihan->nama_instansi;
-        }
-
-        if (! $namaPelanggan) {
-            return back()
+        if (! $tagihan) {
+            return Redirect::back()
                 ->withInput()
-                ->with('error', 'Masukkan nama pelanggan atau pilih tagihan tercetak.');
+                ->with('error', 'Tagihan harus berasal dari bulan tagihan saat ini dan sudah dicetak.');
         }
 
         TagihanPenarikan::create([
-            'tagihan_id' => $tagihan?->id,
-            'nama_pelanggan' => $namaPelanggan,
+            'tagihan_id' => $tagihan->id,
+            'nama_pelanggan' => $tagihan->nama_instansi,
             'petugas' => $validated['petugas'],
         ]);
 
@@ -80,12 +83,32 @@ class PenarikanController extends Controller
             ->with('success', 'Rekap penarikan berhasil disimpan.');
     }
 
+    public function destroy(TagihanPenarikan $penarikan): RedirectResponse
+    {
+        $now = now();
+
+        if (! $penarikan->tagihan || $penarikan->tagihan->bulan_tagihan !== $now->month || $penarikan->tagihan->tahun_tagihan !== $now->year) {
+            return Redirect::back()->with('error', 'Data penarikan tidak ditemukan untuk bulan ini.');
+        }
+
+        $penarikan->delete();
+
+        return redirect()
+            ->route('penarikan.index')
+            ->with('success', 'Data penarikan telah dihapus.');
+    }
+
     private function petugasTotals(Collection $penarikans): Collection
     {
         return collect(self::PETUGAS)
             ->mapWithKeys(function (string $petugas) use ($penarikans): array {
+                $items = $penarikans->get($petugas) ?? collect();
+
                 return [
-                    $petugas => $penarikans->get($petugas)?->count() ?? 0,
+                    $petugas => [
+                        'count' => $items->count(),
+                        'amount' => $items->sum(fn (TagihanPenarikan $penarikan): int => $penarikan->tagihan?->total_bayar ?? 0),
+                    ],
                 ];
             });
     }
