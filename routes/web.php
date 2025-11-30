@@ -35,4 +35,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/rekap-penarikan', [PenarikanController::class, 'store'])->name('penarikan.store');
     Route::patch('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'update'])->name('penarikan.update');
     Route::delete('/rekap-penarikan/{penarikan}', [PenarikanController::class, 'destroy'])->name('penarikan.destroy');
+    Route::get('/rekap-penarikan-cetak', [PenarikanController::class, 'printed'])->name('penarikan.printed');
+    Route::post('/rekap-penarikan-cetak', [PenarikanController::class, 'storePrinted'])->name('penarikan.printed.store');
 });
