@@ -29,7 +29,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label form-label-sm">Tahun</label>
-                    <input type="number" name="tahun" class="form-control form-control-sm" value="{{ $tahun }}">
+                    <input type="number" name="tahun" class="form-control form-control-sm" value="{{ $tahun }}" readonly>
                 </div>
                 <div class="col-md-3 align-self-end">
                     <button class="btn btn-sm btn-primary">Terapkan Filter</button>
