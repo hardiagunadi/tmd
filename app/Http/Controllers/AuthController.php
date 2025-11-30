@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -64,7 +65,7 @@ class AuthController extends Controller
         $user->email = $validated['email'];
 
         if ($request->filled('password')) {
-            $user->password = $validated['password'];
+            $user->password = Hash::make($validated['password']);
         }
 
         $user->save();
