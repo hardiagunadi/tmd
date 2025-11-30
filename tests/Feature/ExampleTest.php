@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PendapatanLain;
 use App\Models\Tagihan;
 use App\Models\TagihanPenarikan;
 use App\Models\User;
@@ -321,5 +322,44 @@ class ExampleTest extends TestCase
         $page = $this->actingAs($user)->get(route('penarikan.index'));
 
         $page->assertSee('Rp 75.000');
+    }
+
+    public function test_pendapatan_lain_menampilkan_total_bersih_per_petugas(): void
+    {
+        Carbon::setTestNow(Carbon::create(2025, 3, 15));
+
+        $this->seed();
+        $user = User::first();
+
+        $response = $this->actingAs($user)->post(route('pendapatan-lain.store'), [
+            'petugas' => 'Deswi',
+            'keterangan' => 'Pendapatan event',
+            'pendapatan' => 200000,
+            'pengeluaran' => 50000,
+        ]);
+
+        $response->assertRedirect(route('pendapatan-lain.index'));
+
+        PendapatanLain::create([
+            'petugas' => 'Ade',
+            'keterangan' => 'Pendapatan tambahan',
+            'pendapatan' => 100000,
+            'pengeluaran' => 25000,
+        ]);
+
+        $page = $this->actingAs($user)->get(route('pendapatan-lain.index'));
+
+        $page->assertSee('Pendapatan: Rp 200.000');
+        $page->assertSee('Pengeluaran: Rp 50.000');
+        $page->assertSee('Bersih: Rp 150.000');
+        $page->assertSee('Ade');
+        $page->assertSee('Bersih: Rp 75.000');
+
+        $this->assertDatabaseHas('pendapatan_lains', [
+            'petugas' => 'Deswi',
+            'keterangan' => 'Pendapatan event',
+            'pendapatan' => 200000,
+            'pengeluaran' => 50000,
+        ]);
     }
 }
