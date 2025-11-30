@@ -39,8 +39,40 @@ class TagihanController extends Controller
 
     public function rekap(Request $request): View
     {
-        [$bulan, $tahun] = $this->resolvePeriode($request);
+        $bulan = $request->get('bulan');
+        $tahun = $request->get('tahun');
         $search = trim((string) $request->get('search'));
+
+        // fallback ke bulan/tahun terakhir yang tersedia jika parameter kosong
+        if (!$bulan && !$tahun) {
+            $latest = Tagihan::query()
+                ->select(['bulan_tagihan', 'tahun_tagihan'])
+                ->orderByDesc('tahun_tagihan')
+                ->orderByDesc('bulan_tagihan')
+                ->first();
+
+            if ($latest) {
+                $bulan = $latest->bulan_tagihan;
+                $tahun = $latest->tahun_tagihan;
+            } else {
+                $tahun = now()->year;
+            }
+        } elseif (!$tahun) {
+            // kalau hanya tahun kosong, ambil tahun terbaru untuk bulan yang dipilih
+            $latestForMonth = Tagihan::query()
+                ->select(['bulan_tagihan', 'tahun_tagihan'])
+                ->when($bulan, fn ($q) => $q->where('bulan_tagihan', $bulan))
+                ->orderByDesc('tahun_tagihan')
+                ->orderByDesc('bulan_tagihan')
+                ->first();
+
+            if ($latestForMonth) {
+                $bulan ??= $latestForMonth->bulan_tagihan;
+                $tahun = $latestForMonth->tahun_tagihan;
+            } else {
+                $tahun = now()->year;
+            }
+        }
 
         $query = Tagihan::query()->where('tahun_tagihan', $tahun);
 
@@ -69,48 +101,6 @@ class TagihanController extends Controller
             'totalBayar'      => $totalBayar,
             'totalPelanggan'  => $totalPelanggan,
         ]);
-    }
-
-    /**
-     * Resolve bulan/tahun filter with sensible fallbacks to avoid empty queries or parse errors.
-     *
-     * @return array{int|null,int}
-     */
-    private function resolvePeriode(Request $request): array
-    {
-        $bulan = $request->get('bulan');
-        $tahun = $request->get('tahun');
-
-        if (!$bulan && !$tahun) {
-            $latest = Tagihan::query()
-                ->select(['bulan_tagihan', 'tahun_tagihan'])
-                ->orderByDesc('tahun_tagihan')
-                ->orderByDesc('bulan_tagihan')
-                ->first();
-
-            if ($latest) {
-                $bulan = $latest->bulan_tagihan;
-                $tahun = $latest->tahun_tagihan;
-            } else {
-                $tahun = now()->year;
-            }
-        } elseif (!$tahun) {
-            $latestForMonth = Tagihan::query()
-                ->select(['bulan_tagihan', 'tahun_tagihan'])
-                ->when($bulan, fn ($q) => $q->where('bulan_tagihan', $bulan))
-                ->orderByDesc('tahun_tagihan')
-                ->orderByDesc('bulan_tagihan')
-                ->first();
-
-            if ($latestForMonth) {
-                $bulan ??= $latestForMonth->bulan_tagihan;
-                $tahun = $latestForMonth->tahun_tagihan;
-            } else {
-                $tahun = now()->year;
-            }
-        }
-
-        return [$bulan, $tahun];
     }
 
     public function importForm(): View
@@ -282,4 +272,7 @@ class TagihanController extends Controller
         return view('tagihan.print_batch', compact('tagihans'));
     }
 
+        // view khusus untuk cetak banyak nota sekaligus
+        return view('tagihan.print_batch', compact('tagihans'));
+    }
 }
