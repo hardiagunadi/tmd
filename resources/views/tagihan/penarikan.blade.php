@@ -42,7 +42,7 @@
         <div class="card-header">Tambah Entri Penarikan</div>
         <div class="card-body">
             <p class="text-secondary small mb-3">
-                Pilih petugas penarik dan pelanggan. Data pelanggan serta jumlah tagihan diambil otomatis dari database; data akan tersimpan begitu kedua pilihan dipenuhi. Pelanggan yang sudah ditugaskan ke petugas lain tidak muncul untuk menghindari duplikasi.
+                Pilih petugas penarik dan pelanggan. Data pelanggan serta jumlah tagihan diambil otomatis dari database; simpan entri setelah memilih keduanya. Pelanggan yang sudah ditugaskan ke petugas lain tidak muncul untuk menghindari duplikasi.
             </p>
             <form action="{{ route('tagihan.penarikan.store') }}" method="POST" class="row g-3" id="penarikan-form">
                 @csrf
@@ -72,6 +72,10 @@
                         <span class="input-group-text">Rp</span>
                         <input type="number" name="nominal" id="nominal_input" class="form-control" min="0" placeholder="Otomatis dari tagihan" value="{{ old('nominal') }}">
                     </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Simpan Entri</button>
+                    <span class="text-secondary small ms-2">Klik tombol simpan atau tekan Enter setelah memilih petugas dan pelanggan.</span>
                 </div>
             </form>
         </div>
@@ -160,26 +164,15 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('penarikan-form');
-        const petugasSelect = document.getElementById('petugas_select');
         const tagihanInput = document.getElementById('tagihan_search');
         const tagihanHidden = document.getElementById('tagihan_id');
         const nominalInput = document.getElementById('nominal_input');
         const tagihanList = document.getElementById('tagihan_list').options;
 
-        let isSubmitting = false;
-
         const isiNominal = (option) => {
             const nominal = option?.dataset?.nominal;
             if (nominal && ! nominalInput.value) {
                 nominalInput.value = nominal;
-            }
-        };
-
-        const submitJikaLengkap = () => {
-            if (! isSubmitting && petugasSelect.value && tagihanHidden.value) {
-                isSubmitting = true;
-                form.submit();
             }
         };
 
@@ -190,7 +183,6 @@
             if (opsiExact) {
                 tagihanHidden.value = opsiExact.dataset.id;
                 isiNominal(opsiExact);
-                submitJikaLengkap();
 
                 return;
             }
@@ -202,15 +194,12 @@
                 tagihanInput.value = opsi.value;
                 tagihanHidden.value = opsi.dataset.id;
                 isiNominal(opsi);
-                submitJikaLengkap();
 
                 return;
             }
 
             tagihanHidden.value = '';
         });
-
-        petugasSelect.addEventListener('change', submitJikaLengkap);
     });
 </script>
 @endpush
