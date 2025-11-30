@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tagihan extends Model
 {
@@ -17,21 +18,22 @@ class Tagihan extends Model
         'biaya_langganan',
         'biaya_admin',
         'deskripsi_paket',
-        'printed_at', // <-- tambahkan        
+        'printed_at', // <-- tambahkan
     ];
 
     protected $casts = [
-        'bulan_tagihan'   => 'integer',
-        'tahun_tagihan'   => 'integer',
+        'bulan_tagihan' => 'integer',
+        'tahun_tagihan' => 'integer',
         'biaya_langganan' => 'integer',
-        'biaya_admin'     => 'integer',
-        'printed_at'      => 'datetime', // <-- tambahkan
+        'biaya_admin' => 'integer',
+        'printed_at' => 'datetime', // <-- tambahkan
     ];
 
     public function getStatusCetakAttribute(): string
     {
         return $this->printed_at ? 'Sudah cetak' : 'Belum cetak';
     }
+
     // Nama bulan: "Juni"
     public function getNamaBulanTagihanAttribute(): string
     {
@@ -49,5 +51,10 @@ class Tagihan extends Model
     public function getTotalBayarAttribute(): int
     {
         return $this->biaya_langganan + $this->biaya_admin;
+    }
+
+    public function penarikans(): HasMany
+    {
+        return $this->hasMany(TagihanPenarikan::class);
     }
 }
