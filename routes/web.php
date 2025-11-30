@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('tagihan')->name('tagihan.')->group(function () {
         Route::get('/', [TagihanController::class, 'index'])->name('index');
+        Route::get('/rekap', [TagihanController::class, 'rekap'])->name('rekap');
+        Route::get('/rekap-penarikan', [TagihanController::class, 'rekap'])->name('rekap-penarikan');
 
         Route::get('/import', [TagihanController::class, 'importForm'])->name('import.form');
         Route::post('/import/preview', [TagihanController::class, 'importPreview'])->name('import.preview');
