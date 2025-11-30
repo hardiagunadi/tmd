@@ -19,10 +19,19 @@ class PenarikanController extends Controller
     {
         $now = now();
 
+        $assignedTagihanIds = TagihanPenarikan::query()
+            ->whereHas('tagihan', function ($query) use ($now) {
+                $query
+                    ->where('bulan_tagihan', $now->month)
+                    ->where('tahun_tagihan', $now->year);
+            })
+            ->pluck('tagihan_id');
+
         $printedTagihans = Tagihan::query()
             ->where('bulan_tagihan', $now->month)
             ->where('tahun_tagihan', $now->year)
             ->whereNotNull('printed_at')
+            ->whereNotIn('id', $assignedTagihanIds)
             ->orderBy('nama_instansi')
             ->get([
                 'id',
@@ -74,6 +83,21 @@ class PenarikanController extends Controller
             return Redirect::back()
                 ->withInput()
                 ->with('error', 'Tagihan harus berasal dari bulan tagihan saat ini dan sudah dicetak.');
+        }
+
+        $existingPenarikan = TagihanPenarikan::query()
+            ->where('tagihan_id', $tagihan->id)
+            ->whereHas('tagihan', function ($query) use ($now) {
+                $query
+                    ->where('bulan_tagihan', $now->month)
+                    ->where('tahun_tagihan', $now->year);
+            })
+            ->exists();
+
+        if ($existingPenarikan) {
+            return Redirect::back()
+                ->withInput()
+                ->with('error', 'Tagihan sudah direkap untuk bulan ini.');
         }
 
         TagihanPenarikan::create([

@@ -105,6 +105,55 @@ class ExampleTest extends TestCase
         ]);
     }
 
+    public function test_assigned_tagihan_hidden_from_database_picker(): void
+    {
+        Carbon::setTestNow(Carbon::create(2025, 3, 15));
+
+        $this->seed();
+        $user = User::first();
+
+        $availableTagihan = Tagihan::create([
+            'nama_instansi' => 'Pelanggan Baru',
+            'alamat_instansi' => 'Alamat X',
+            'no_invoice' => 'INV-NEW-001',
+            'no_pelanggan' => 'PLG-NEW-01',
+            'bulan_tagihan' => 3,
+            'tahun_tagihan' => 2025,
+            'biaya_langganan' => 120000,
+            'biaya_admin' => 5000,
+            'deskripsi_paket' => 'Paket X',
+            'printed_at' => now(),
+        ]);
+
+        $assignedTagihan = Tagihan::create([
+            'nama_instansi' => 'Pelanggan Sudah Ditarik',
+            'alamat_instansi' => 'Alamat Y',
+            'no_invoice' => 'INV-ASSIGNED-001',
+            'no_pelanggan' => 'PLG-ASS-01',
+            'bulan_tagihan' => 3,
+            'tahun_tagihan' => 2025,
+            'biaya_langganan' => 80000,
+            'biaya_admin' => 2000,
+            'deskripsi_paket' => 'Paket Y',
+            'printed_at' => now(),
+        ]);
+
+        TagihanPenarikan::create([
+            'petugas' => 'Ade',
+            'nama_pelanggan' => 'Pelanggan Sudah Ditarik',
+            'tagihan_id' => $assignedTagihan->id,
+            'nominal' => $assignedTagihan->total_bayar,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('penarikan.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('printedTagihans', function ($collection) use ($availableTagihan, $assignedTagihan) {
+            return $collection->contains('id', $availableTagihan->id)
+                && ! $collection->contains('id', $assignedTagihan->id);
+        });
+    }
+
     public function test_rekap_page_displays_current_month_totals_and_supports_deletion(): void
     {
         Carbon::setTestNow(Carbon::create(2025, 3, 15));
@@ -190,6 +239,44 @@ class ExampleTest extends TestCase
         $this->assertDatabaseMissing('tagihan_penarikans', [
             'id' => $deswiPenarikan->id,
         ]);
+    }
+
+    public function test_store_rejects_duplicate_penarikan_for_same_tagihan(): void
+    {
+        Carbon::setTestNow(Carbon::create(2025, 3, 15));
+
+        $this->seed();
+        $user = User::first();
+
+        $tagihan = Tagihan::create([
+            'nama_instansi' => 'Pelanggan Ganda',
+            'alamat_instansi' => 'Alamat Z',
+            'no_invoice' => 'INV-DUP-001',
+            'no_pelanggan' => 'PLG-DUP-01',
+            'bulan_tagihan' => 3,
+            'tahun_tagihan' => 2025,
+            'biaya_langganan' => 140000,
+            'biaya_admin' => 5000,
+            'deskripsi_paket' => 'Paket Z',
+            'printed_at' => now(),
+        ]);
+
+        TagihanPenarikan::create([
+            'petugas' => 'Deswi',
+            'nama_pelanggan' => 'Pelanggan Ganda',
+            'tagihan_id' => $tagihan->id,
+            'nominal' => $tagihan->total_bayar,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('penarikan.store'), [
+            'petugas' => 'Slamet',
+            'tagihan_id' => $tagihan->id,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+
+        $this->assertDatabaseCount('tagihan_penarikans', 1);
     }
 
     public function test_penarikan_nominal_can_be_adjusted_inline(): void
