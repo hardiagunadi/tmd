@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TagihanController;
+use App\Http\Controllers\TagihanPenarikanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -29,5 +30,9 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/print-batch', [TagihanController::class, 'printBatch'])->name('print.batch');
         Route::get('/{tagihan}/print', [TagihanController::class, 'print'])->name('print');
+
+        Route::get('/penarikan', [TagihanPenarikanController::class, 'index'])->name('penarikan.index');
+        Route::post('/penarikan', [TagihanPenarikanController::class, 'store'])->name('penarikan.store');
+        Route::put('/penarikan/{penarikan}', [TagihanPenarikanController::class, 'update'])->name('penarikan.update');
     });
 });
