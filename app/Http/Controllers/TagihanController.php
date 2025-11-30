@@ -241,4 +241,7 @@ class TagihanController extends Controller
         return view('tagihan.print_batch', compact('tagihans'));
     }
 
+        // view khusus untuk cetak banyak nota sekaligus
+        return view('tagihan.print_batch', compact('tagihans'));
+    }
 }
