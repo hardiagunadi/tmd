@@ -17,7 +17,6 @@ class TagihanPenarikanController extends Controller
     {
         $tahun = $request->integer('tahun') ?? $this->defaultTahun();
         $bulan = $request->integer('bulan') ?? $this->defaultBulan($tahun);
-        $selectedPetugas = old('petugas', $request->session()->get('selected_penarikan_petugas'));
 
         $tagihans = $this->tagihansByPeriode($bulan, $tahun);
 
@@ -37,24 +36,12 @@ class TagihanPenarikanController extends Controller
             ->orderBy('nama_pelanggan')
             ->get();
 
-        $penarikanByPetugas = $penarikans->groupBy('petugas');
-
-        $tagihanSudahDiambil = $penarikans
-            ->pluck('tagihan_id')
-            ->filter()
-            ->all();
-
-        $tagihansUntukInput = $this->tagihansByPeriode($bulan, $tahun, $tagihanSudahDiambil);
-
         return view('tagihan.penarikan', [
             'bulan' => $bulan,
             'tahun' => $tahun,
             'tagihans' => $tagihans,
-            'tagihansUntukInput' => $tagihansUntukInput,
             'penarikans' => $penarikans,
-            'penarikanByPetugas' => $penarikanByPetugas,
             'petugasList' => self::PETUGAS_LIST,
-            'selectedPetugas' => $selectedPetugas,
         ]);
     }
 
@@ -68,35 +55,21 @@ class TagihanPenarikanController extends Controller
 
         $tagihan = Tagihan::findOrFail($validated['tagihan_id']);
 
-        $existingPenarikan = TagihanPenarikan::query()
-            ->where('tagihan_id', $tagihan->id)
-            ->first();
-
-        if ($existingPenarikan) {
-            return redirect()
-                ->route('tagihan.penarikan.index', [
-                    'bulan' => $tagihan->bulan_tagihan,
-                    'tahun' => $tagihan->tahun_tagihan,
-                ])
-                ->with('selected_penarikan_petugas', $validated['petugas'])
-                ->with('error', 'Tagihan ini sudah tercatat pada petugas lain. Ubah data melalui daftar penarikan jika ingin memindahkan.');
-        }
-
         $nominal = $validated['nominal'] ?? $tagihan->total_bayar;
 
-        TagihanPenarikan::create([
-            'tagihan_id' => $tagihan->id,
-            'petugas' => $validated['petugas'],
-            'nama_pelanggan' => $tagihan->nama_instansi,
-            'nominal' => $nominal,
-        ]);
+        TagihanPenarikan::updateOrCreate(
+            ['tagihan_id' => $tagihan->id],
+            [
+                'petugas' => $validated['petugas'],
+                'nama_pelanggan' => $tagihan->nama_instansi,
+                'nominal' => $nominal,
+            ]
+        );
 
         return redirect()->route('tagihan.penarikan.index', [
             'bulan' => $tagihan->bulan_tagihan,
             'tahun' => $tagihan->tahun_tagihan,
-        ])
-            ->with('selected_penarikan_petugas', $validated['petugas'])
-            ->with('success', 'Data penarikan berhasil disimpan untuk petugas terpilih.');
+        ])->with('success', 'Data penarikan berhasil disimpan untuk petugas terpilih.');
     }
 
     public function update(TagihanPenarikan $penarikan, Request $request): RedirectResponse
@@ -116,7 +89,6 @@ class TagihanPenarikanController extends Controller
         }
 
         return redirect()->route('tagihan.penarikan.index', $redirectParams)
-            ->with('selected_penarikan_petugas', $validated['petugas'])
             ->with('success', 'Data penarikan berhasil diperbarui.');
     }
 
@@ -132,12 +104,11 @@ class TagihanPenarikanController extends Controller
             ->max('bulan_tagihan');
     }
 
-    private function tagihansByPeriode(?int $bulan, ?int $tahun, array $excludedTagihanIds = []): Collection
+    private function tagihansByPeriode(?int $bulan, ?int $tahun): Collection
     {
         return Tagihan::query()
             ->when($tahun, fn ($query) => $query->where('tahun_tagihan', $tahun))
             ->when($bulan, fn ($query) => $query->where('bulan_tagihan', $bulan))
-            ->when($excludedTagihanIds, fn ($query) => $query->whereNotIn('id', $excludedTagihanIds))
             ->orderBy('nama_instansi')
             ->get();
     }
