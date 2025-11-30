@@ -7,15 +7,15 @@
     <style>
         /* Sama seperti print.blade, biar tampilan konsisten */
         @page {
-            size: 241mm 140mm;
-            margin: 5mm 7mm;
+            size: 140mm 120mm;
+            margin: 5mm 5mm;
         }
 
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             color: #000;
         }
 
@@ -28,10 +28,11 @@
             display: flex;
             align-items: center;
             margin-bottom: 6px;
+			margin-top: 7px;
         }
 
         .logo {
-            width: 55px;
+            width: 65px;
         }
 
         .header-text {
@@ -41,16 +42,16 @@
 
         .header-text .title {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 17px;
         }
 
         .header-text .subtitle {
-            font-size: 12px;
+            font-size: 13px;
         }
 
         .top-info {
             margin-top: 6px;
-            font-size: 12px;
+            font-size: 13px;
         }
         .top-info table {
             width: 100%;
@@ -70,7 +71,7 @@
         .amount-table {
             width: 100%;
             margin-top: 6px;
-            font-size: 12px;
+            font-size: 13px;
         }
         .amount-table td {
             padding: 1px 0;
