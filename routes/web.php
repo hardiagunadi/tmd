@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FinancialRecapController;
 use App\Http\Controllers\OtherTransactionController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\TagihanPenarikanController;
@@ -23,6 +24,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/lainnya', [OtherTransactionController::class, 'index'])->name('lainnya.index');
     Route::post('/lainnya', [OtherTransactionController::class, 'store'])->name('lainnya.store');
+    Route::get('/rekap-keuangan', [FinancialRecapController::class, 'index'])->name('rekap.index');
 
     Route::prefix('tagihan')->name('tagihan.')->group(function () {
         Route::get('/', [TagihanController::class, 'index'])->name('index');
